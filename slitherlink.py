@@ -2,6 +2,7 @@
 # Subject: https://elearning.u-pem.fr/pluginfile.php/511264/mod_resource/content/3/projet.pdf
 
 import fltk as fl
+import math
 
 TAILLE_CASE = 150
 TAILLE_MARGE = 50
@@ -41,6 +42,10 @@ def trace_segment(etat, segment):
     Cette fonction trace un segment sur le plateau
     Cad elle ajoute etat[segment] = 1
     """
+    if segment not in etat:
+        etat[segment] = 1
+    else:
+        efface_segment(etat, segment)
 
 
 def interdi_segment(etat, segment):
@@ -55,12 +60,29 @@ def efface_segment(etat, segment):
     Cette fonction efface un segment du plateau
     Cad elle le retire du dict etat
     """
+    if segment in etat:
+        del etat[segment]
 
 
 def efface_TOUTsegment(etat):
     """
     Cette fonction efface tout les segments
     """
+
+
+def gestion_clique(coor, marge, tailleCase, etat):
+    """
+    recuepre les coor d'un clique, si le joueur clique sur un segment
+    alors il creer le segment (ou le retire si il est deja présent)
+    """
+    x, y = coor
+    dx = (x - marge) / tailleCase
+    dy = (y - marge) / tailleCase
+
+    if  -0.2 < dx - round(dx) < 0.2:
+        trace_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
+    elif -0.2 < dy - round(dy) < 0.2:
+        trace_segment(etat, ((round(dx - 0.5), round(dy)), (round(dx - 0.5)+1, round(dy))))
 
 
 # fonction qui gere les sommets
@@ -128,7 +150,7 @@ def dessine_plateau(indices, marge, tailleCase):
             if indice == None: continue
             fl.texte(marge+(tailleCase/2) + y*tailleCase,
                      marge+(tailleCase/2) + x*tailleCase,
-                     indice, ancrage='center')
+                     indice, ancrage='center', taille=40)
             
 
 
@@ -136,10 +158,27 @@ def dessine_segment(etat, marge, tailleCase):
     """
     finctio qui dessine tout les segments sur le plateau.
     """
+    fl.efface('ligne')
+    for segment, typeSeg in etat.items():
+        a, b = segment
+        ax, ay = ((a[0] * tailleCase) + marge, (a[1] * tailleCase) + marge)
+        bx, by = ((b[0] * tailleCase) + marge, (b[1] * tailleCase) + marge)
+        print(a, b)
+        fl.ligne(ax, ay, bx, by, tag='ligne')
 
 
 # programme principal
 if __name__ == '__main__':
+
+    #Declaration des variable
     indices = cree_grille("test.txt")
     dessine_plateau(indices, TAILLE_MARGE, TAILLE_CASE)
+    etat = {}
+
+    while True:
+        coorClique = fl.attend_clic_gauche()
+        gestion_clique(coorClique, TAILLE_MARGE, TAILLE_CASE, etat)
+        print(etat)
+        dessine_segment(etat, TAILLE_MARGE, TAILLE_CASE)
+
     fl.attend_fermeture()
