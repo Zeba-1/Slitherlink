@@ -9,34 +9,6 @@ TAILLE_MARGE = 50
 
 # fonction pour gerer les segments
 
-def ordre_segment(segment):
-    """
-    Cette fonction s'assure que le segment est dans le bonne ordre
-    Cad que ((a,b), (c,d)) == ((c,d), (a,b))
-    """
-
-
-def est_trace(etat, segment):
-    """
-    Cette fonction regarde si un segment est trace sur le plateau
-    Cad si il existe dans etat ET si etat[segment] == 1
-    """
-
-
-def est_interdit(etat, segment):
-    """
-    Cette fonction regarde si un segment est interdit sur le plateau
-    Cad si il existe dans etat ET si etat[segment] == -1
-    """
-
-
-def est_vierge(etat, segment):
-    """
-    Cette fonction regarde si un segment n'est ni trace ni interdit
-    Cad si il n'existe pas dans etat
-    """
-
-
 def trace_segment(etat, segment):
     """
     Cette fonction trace un segment sur le plateau
@@ -75,26 +47,29 @@ def efface_TOUTsegment(etat):
     etat = {}
 
 
-def gestion_clique(ev, tev, marge, tailleCase, etat):
+def gestion_clique(ev, tev, marge, tailleCase, etat, dim):
     """
     recuepre les coor d'un clique, si le joueur clique sur un segment
     alors il creer le segment (ou le retire si il est deja présent)
     """
     x, y = (fl.abscisse(ev), fl.ordonnee(ev))
-    dx = (x - marge) / tailleCase
-    dy = (y - marge) / tailleCase
+    print(x, dim[0], y, dim[1])
+    # On verifie qu'on ne sort pas du plateau
+    if marge < x < marge + dim[0] * tailleCase and marge < y < marge + dim[1] * tailleCase:
+        dx = (x - marge) / tailleCase
+        dy = (y - marge) / tailleCase
 
-    if tev == 'ClicGauche':
-        if  -0.2 < dx - round(dx) < 0.2:
-            trace_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
-        elif -0.2 < dy - round(dy) < 0.2:
-            trace_segment(etat, ((round(dx - 0.5), round(dy)), (round(dx - 0.5)+1, round(dy))))
-    elif tev == 'ClicDroit':
-        if  -0.2 < dx - round(dx) < 0.2:
-            interdi_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
-        elif -0.2 < dy - round(dy) < 0.2:
-            interdi_segment(etat, ((round(dx - 0.5), round(dy)), (round(dx - 0.5)+1, round(dy))))
-
+        print(dx, dy)
+        if tev == 'ClicGauche':  # trace un segment
+            if  -0.2 < dx - round(dx) < 0.2:
+                trace_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
+            elif -0.2 < dy - round(dy) < 0.2:
+                trace_segment(etat, ((round(dx - 0.5), round(dy)), (round(dx - 0.5)+1, round(dy))))
+        elif tev == 'ClicDroit':  # interdit un segment
+            if  -0.2 < dx - round(dx) < 0.2:
+                interdi_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
+            elif -0.2 < dy - round(dy) < 0.2:
+                interdi_segment(etat, ((round(dx - 0.5), round(dy)), (round(dx - 0.5)+1, round(dy))))
 
 
 # fonction qui gere les sommets
@@ -105,6 +80,12 @@ def recup_segment(etat, sommet, typeSeg):
     don l'etat est typeSeg
     typeSeg: 1 = tarce, -1 = interdit, None = vierge
     """
+    lstSeg = []
+    for segement, Type in etat.items():
+        if sommet in segement and Type == typeSeg:
+            lstSeg.append(segement)
+    return lstSeg
+
 
 
 # fonction qui gere les cases
@@ -114,6 +95,30 @@ def statut_case(indices, etat, case):
     Indique si la case est satisfaite(bon nombre de segment autour)
     si il reste des segment a mettre ou si il y en a trop !
     """
+    y, x = case
+    nb = indices[y][x]
+    nbSeg = 0
+
+    # On check tout les segment autour de notre case
+    try: 
+        if etat[((x, y), (x+1, y))] == 1: nbSeg += 1
+    except KeyError: pass
+    try: 
+        if etat[((x, y), (x, y+1))] == 1: nbSeg += 1
+    except KeyError: pass
+    try: 
+        if etat[((x+1, y), (x+1, y+1))] == 1: nbSeg += 1
+    except KeyError: pass
+    try: 
+        if etat[((x, y+1), (x+1, y+1))] == 1: nbSeg += 1
+    except KeyError: pass
+
+    if nbSeg == nb:
+        return True
+    elif nbSeg > nb:
+        return False
+    elif nbSeg < nb:
+        return None
 
 
 # fonction pour la grille
@@ -132,7 +137,7 @@ def cree_grille(fichier):
             if char == "_":
                 indices[i].append(None)
             else:
-                indices[i].append(char)
+                indices[i].append(int(char))
         i += 1
 
     grilleTxt.close()
@@ -140,7 +145,7 @@ def cree_grille(fichier):
 
 # fonction graphique !
 
-def dessine_plateau(indices, marge, tailleCase):
+def dessine_plateau(indices, etat, marge, tailleCase):
     """
     fonction qui dessinne le plateau en fonction du tableau indices
     d'une marge et d'une de case spécifique
@@ -156,14 +161,23 @@ def dessine_plateau(indices, marge, tailleCase):
             fl.cercle(marge+(x*tailleCase), marge+(y*tailleCase), 10,
                       remplissage='black')
 
-    # boucle pour le dessin des indices
+    dessine_indices(indices, etat, marge, tailleCase) # On ajoute les indices
+    return (len(indices[0]), len(indices))
+
+def dessine_indices(indices, etat, marge, tailleCase):
+    """
+    Mets les indices données au centre des cases
+    """
+    fl.efface("indice")
     for x, ligne in enumerate(indices):
         for y, indice in enumerate(ligne):
-            if indice == None: continue
+            if indice == None: continue # Si il n'y a pas d'indice on passe
+            # On regarde si la case est completer ou non
+            statut = statut_case(indices, etat, (x, y))
             fl.texte(marge+(tailleCase/2) + y*tailleCase,
                      marge+(tailleCase/2) + x*tailleCase,
-                     indice, ancrage='center', taille=40)
-            
+                     str(indice), ancrage='center', taille=40,
+                     tag="indice")
 
 
 def dessine_segment(etat, marge, tailleCase):
@@ -185,16 +199,21 @@ def dessine_segment(etat, marge, tailleCase):
 # programme principal
 if __name__ == '__main__':
 
-    #Declaration des variable
-    indices = cree_grille("test.txt")
-    dessine_plateau(indices, TAILLE_MARGE, TAILLE_CASE)
-    etat = {}
+    # Menue
 
+    # Declaration des variable
+    indices = cree_grille("test.txt")
+    print(indices)
+    etat = {}
+    dim = dessine_plateau(indices, etat, TAILLE_MARGE, TAILLE_CASE)
+
+    # Boucle de jeux
     while True:
         ev = fl.attend_ev()
         tev = fl.type_ev(ev)
         if tev == 'ClicDroit' or tev == 'ClicGauche':
-            gestion_clique(ev, tev, TAILLE_MARGE, TAILLE_CASE, etat)
+            gestion_clique(ev, tev, TAILLE_MARGE, TAILLE_CASE, etat, dim)
         dessine_segment(etat, TAILLE_MARGE, TAILLE_CASE)
+        dessine_indices(indices, etat, TAILLE_MARGE, TAILLE_CASE)
 
     fl.attend_fermeture()
