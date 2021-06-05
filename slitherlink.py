@@ -174,10 +174,14 @@ def dessine_indices(indices, etat, marge, tailleCase):
             if indice == None: continue # Si il n'y a pas d'indice on passe
             # On regarde si la case est completer ou non
             statut = statut_case(indices, etat, (x, y))
+            # choix de la couleur de l'indice
+            color = "black"
+            if statut == True: color = "green"
+            elif statut == False: color = "red"
             fl.texte(marge+(tailleCase/2) + y*tailleCase,
                      marge+(tailleCase/2) + x*tailleCase,
                      str(indice), ancrage='center', taille=40,
-                     tag="indice")
+                     tag="indice", couleur=color)
 
 
 def dessine_segment(etat, marge, tailleCase):
