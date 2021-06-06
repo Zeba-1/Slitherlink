@@ -53,13 +53,11 @@ def gestion_clique(ev, tev, marge, tailleCase, etat, dim):
     alors il creer le segment (ou le retire si il est deja présent)
     """
     x, y = (fl.abscisse(ev), fl.ordonnee(ev))
-    print(x, dim[0], y, dim[1])
     # On verifie qu'on ne sort pas du plateau
     if marge < x < marge + dim[0] * tailleCase and marge < y < marge + dim[1] * tailleCase:
         dx = (x - marge) / tailleCase
         dy = (y - marge) / tailleCase
 
-        print(dx, dy)
         if tev == 'ClicGauche':  # trace un segment
             if  -0.2 < dx - round(dx) < 0.2:
                 trace_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
@@ -70,6 +68,37 @@ def gestion_clique(ev, tev, marge, tailleCase, etat, dim):
                 interdi_segment(etat, ((round(dx), round(dy - 0.5)), (round(dx), round(dy - 0.5)+1)))
             elif -0.2 < dy - round(dy) < 0.2:
                 interdi_segment(etat, ((round(dx - 0.5), round(dy)), (round(dx - 0.5)+1, round(dy))))
+
+
+def check_boucle(etat):
+    """
+    Check si la figure dessinner par les points, fait une boucle ou non
+    """
+    if len(etat) < 1:
+        return False
+
+    checkedSeg = list(etat.keys())[0] # Premier point de notre boucle
+    premier = checkedSeg[0] # Segment sur lequel on est
+    checkedPoint = checkedSeg[1] # point qu'on regarde
+
+    if len(recup_segment(etat, premier, 1)) != 2:
+        return False
+
+    while checkedPoint != premier: # Tant qu'on as pas fait une boucle
+        lstSeg = recup_segment(etat, checkedPoint, 1)
+        if len(lstSeg) != 2:
+            return False
+
+        lstSeg.remove(checkedSeg) # On retire le segment que l'on regardais
+        checkedSeg = lstSeg[0] # On regarde le nouveau segment
+        
+        # On s'assure de ne pas reagarder le meme point
+        if checkedSeg[0] == checkedPoint:
+            checkedPoint = checkedSeg[1]
+        else:
+            checkedPoint = checkedSeg[0]
+
+    return True
 
 
 # fonction qui gere les sommets
@@ -85,7 +114,6 @@ def recup_segment(etat, sommet, typeSeg):
         if sommet in segement and Type == typeSeg:
             lstSeg.append(segement)
     return lstSeg
-
 
 
 # fonction qui gere les cases
@@ -122,6 +150,7 @@ def statut_case(indices, etat, case):
 
 
 # fonction pour la grille
+
 def cree_grille(fichier):
     """
     transforme le contenue d'un fichier txt en liste de liste
@@ -142,6 +171,7 @@ def cree_grille(fichier):
 
     grilleTxt.close()
     return indices
+
 
 # fonction graphique !
 
@@ -183,7 +213,6 @@ def dessine_indices(indices, etat, marge, tailleCase):
                      str(indice), ancrage='center', taille=40,
                      tag="indice", couleur=color)
 
-
 def dessine_segment(etat, marge, tailleCase):
     """
     finctio qui dessine tout les segments sur le plateau.
@@ -200,6 +229,37 @@ def dessine_segment(etat, marge, tailleCase):
                      tag='ligne')
 
 
+# Gestion des commande
+
+def commade(touche):
+    if touche == 'q':
+        fl.ferme_fenetre()
+
+# VICTOIRE
+
+def deter_VICTOIRE(etat, indices, dim):
+    """
+    Regarde si toute les conditions de victroire sont remplie
+    """
+    for x, ligne in enumerate(indices):
+        for y, indice in enumerate(ligne):
+            if indice == None: continue # Si y'a pas d'indice
+            if statut_case(indices, etat, (x, y)) != True:
+                return False
+
+    if check_boucle(etat) != True:
+        return False
+
+    return True
+
+def ecran_fin():
+    fl.ferme_fenetre()
+    fl.cree_fenetre(400, 200)
+    fl.texte(200, 90, "Puzzle résolue !", ancrage='center')
+    fl.texte(200, 110, "vous pouver fermez la fenetre", ancrage='center',
+             taille=12)
+    fl.attend_fermeture()
+
 # programme principal
 if __name__ == '__main__':
 
@@ -207,17 +267,21 @@ if __name__ == '__main__':
 
     # Declaration des variable
     indices = cree_grille("test.txt")
-    print(indices)
     etat = {}
     dim = dessine_plateau(indices, etat, TAILLE_MARGE, TAILLE_CASE)
 
     # Boucle de jeux
-    while True:
+    jeu = True
+    while jeu:
         ev = fl.attend_ev()
         tev = fl.type_ev(ev)
         if tev == 'ClicDroit' or tev == 'ClicGauche':
             gestion_clique(ev, tev, TAILLE_MARGE, TAILLE_CASE, etat, dim)
+        else:
+            commade(fl.touche(ev))
         dessine_segment(etat, TAILLE_MARGE, TAILLE_CASE)
         dessine_indices(indices, etat, TAILLE_MARGE, TAILLE_CASE)
 
-    fl.attend_fermeture()
+        if deter_VICTOIRE(etat, indices, dim) == True:
+            ecran_fin()
+            jeu = False
