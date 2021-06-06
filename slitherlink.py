@@ -3,6 +3,9 @@
 
 import fltk as fl
 import math
+import os
+import subprocess
+from time import sleep
 
 TAILLE_CASE = 150
 TAILLE_MARGE = 50
@@ -228,12 +231,27 @@ def dessine_segment(etat, marge, tailleCase):
             fl.texte((ax + bx)/2, (ay + by)/2, 'X', 'red', 'center',
                      tag='ligne')
 
-
 # Gestion des commande
 
 def commade(touche):
     if touche == 'q':
         fl.ferme_fenetre()
+
+def click_menu(click):
+    x, y = click
+
+    if 75 < x < 255 and 240 < y < 295:
+        return False, "grille1.txt"
+    elif 440 < x < 620 and 240 < y < 295:
+        return False, "grille2.txt"
+    elif 200 < x < 495 and 335 < y < 380:
+        return False, "custom.txt"
+    elif 592 < x < 652 and 458 < y < 480:
+        if os.name == 'posix':
+            subprocess.call(["open", "aide.txt"])
+        elif os.name == 'nt':
+            os.startfile("aide.txt")
+        return True, "grille1.txt"
 
 # VICTOIRE
 
@@ -264,9 +282,19 @@ def ecran_fin():
 if __name__ == '__main__':
 
     # Menue
+    fl.cree_fenetre(700, 500)
+    grille = ""
+    menu = True
+    while menu:
+        fl.efface_tout()
+        fl.image(350, 250, "menu.png")
+        click = fl.attend_clic_gauche()
+        menu, grille =  click_menu(click)
+
+    fl.ferme_fenetre()
 
     # Declaration des variable
-    indices = cree_grille("test.txt")
+    indices = cree_grille(grille)
     etat = {}
     dim = dessine_plateau(indices, etat, TAILLE_MARGE, TAILLE_CASE)
 

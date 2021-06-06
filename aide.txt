@@ -1,0 +1,7 @@
+AIDE :
+Pour pouvoir jouer avec votre prope grille il faut : 
+	-Avoir créer un fichier "custome.txt" qui contiendras votre grille avec des "_" pour indiquer des cases sans indices ( exemple : 1_33 ) 
+
+COMMANDE :
+	-Pour fermer le jeu il suffit d'appuyer sur la touche "q"
+	-Pour activer le solveur il suffit d'appuyer sur la touche "s"
