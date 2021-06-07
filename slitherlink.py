@@ -11,6 +11,20 @@ TAILLE_CASE = 150
 TAILLE_MARGE = 50
 
 # fonction pour gerer les segments
+def ordre_segment(segment):
+    if segment[0] == segment[1]:
+        return "nope"
+    distS1 = segment[0][0] * segment[0][0] + segment[0][1] * segment[0][1]
+    distS2 = segment[1][0] * segment[1][0] + segment[1][1] * segment[1][1]
+    if distS1 == distS2:
+        if segment[0][0] < segment[1][0]:
+           return (segment[0], segment[1])
+        else:
+            return (segment[1], segment[0])
+    if distS1 < distS2:
+        return (segment[0], segment[1])
+    else:
+        return (segment[1], segment[0])
 
 def trace_segment(etat, segment):
     """
@@ -103,6 +117,14 @@ def check_boucle(etat):
 
     return True
 
+def point_suivant(som, dire, dim):
+    x, y = som
+    dx, dy = dire
+    maxX, maxY = dim
+    if 0 <= x + dx <= maxX:
+        if 0 <= y + dy <= maxY:
+            return (x + dx, y + dy)
+    return None
 
 # fonction qui gere les sommets
 
@@ -150,6 +172,45 @@ def statut_case(indices, etat, case):
         return False
     elif nbSeg < nb:
         return None
+
+def solveur_start(indices, marge, tailleCase, dim):
+    for y, ligne in enumerate(indices):
+        for x, indice in enumerate(ligne):
+            if indice != None and indice != 0:
+                print(indice)
+                coor = [(x, y), (x+1, y), (x, y+1), (x+1, y+1)]
+                for som in coor:
+                    if solveur(indices, marge, tailleCase, dim, som):
+                        return True
+                break
+    return False
+
+def solveur(indices, marge, tailleCase, dim, som, etat={}):
+    if deter_VICTOIRE(etat, indices, dim) == True:
+        return True
+    else:
+        # On regarde si on as pas creer un 'carrefour'
+        if len(recup_segment(etat, som, 1)) > 2:
+            return False
+        # On regarde si on surcharge pas un indice
+        for x, ligne in enumerate(indices):
+            for y, indice in enumerate(ligne):
+                if indice == None: continue # Si y'a pas d'indice
+                if statut_case(indices, etat, (x, y)) == False:
+                    return False
+    # si la solution en cours semble viable
+    lstDir = [(0, -1), (1, 0), (0, 1), (-1, 0)]
+    for dire in lstDir:
+        if point_suivant(som, dire, dim) != None:
+            if ordre_segment((point_suivant(som, dire, dim), som)) not in etat:
+                trace_segment(etat, ordre_segment((point_suivant(som, dire, dim), som)))
+                dessine_segment(etat, marge, tailleCase)
+                if solveur(indices, marge, tailleCase, dim, point_suivant(som, dire, dim), etat):
+                    return True
+                efface_segment(etat, ordre_segment((point_suivant(som, dire, dim), som)))
+    return False 
+
+                
 
 
 # fonction pour la grille
@@ -230,12 +291,9 @@ def dessine_segment(etat, marge, tailleCase):
         elif typeSeg == -1:
             fl.texte((ax + bx)/2, (ay + by)/2, 'X', 'red', 'center',
                      tag='ligne')
+    fl.mise_a_jour()
 
 # Gestion des commande
-
-def commade(touche):
-    if touche == 'q':
-        fl.ferme_fenetre()
 
 def click_menu(click):
     x, y = click
@@ -306,10 +364,17 @@ if __name__ == '__main__':
         if tev == 'ClicDroit' or tev == 'ClicGauche':
             gestion_clique(ev, tev, TAILLE_MARGE, TAILLE_CASE, etat, dim)
         else:
-            commade(fl.touche(ev))
+            touche = fl.touche(ev)
+            if touche == 'q':
+                fl.ferme_fenetre()
+            if touche == 's':
+                if solveur_start(indices, TAILLE_MARGE, TAILLE_CASE, dim):
+                    fl.attend_clic_gauche()
+                    fl.attend_clic_gauche()
+                    ecran_fin()
+
         dessine_segment(etat, TAILLE_MARGE, TAILLE_CASE)
         dessine_indices(indices, etat, TAILLE_MARGE, TAILLE_CASE)
 
         if deter_VICTOIRE(etat, indices, dim) == True:
             ecran_fin()
-            jeu = False
